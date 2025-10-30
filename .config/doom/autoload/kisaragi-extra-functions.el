@@ -86,10 +86,18 @@
            (current-decoded (iso8601-parse current-timestamp))
            (current-zone (decoded-time-zone current-decoded)))
       ;; TODO: special treatment if type is zone
-      (save-excursion
-        (delete-region (car bounds) (cdr bounds))
-        (goto-char (car bounds))
-        (insert (format "%02d" (+ value (or n 1))))))))
+      (delete-region (car bounds) (cdr bounds))
+      (goto-char (car bounds))
+      (insert (format "%02d" (+ value (or n 1))))
+      ;; "normalize" back into reasonable ranges.
+      ;; the simple addition above would produce eg. 08-32
+      ;; FIXME: what about going down
+      (let ((before-normalize (delete-and-extract-region (line-beginning-position)
+                                                         (line-end-position))))
+        (insert
+         (format-time-string "%FT%T%z" (encode-time (iso8601-parse before-normalize))
+                             current-zone)))
+      (goto-char (car bounds)))))
 
 (defun k/wip-read-timestamp-decrement (&optional n)
   "Decrement the component at point by N."
