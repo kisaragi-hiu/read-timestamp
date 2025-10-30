@@ -64,22 +64,46 @@
 (defun k/wip-read-timestamp-increment (&optional n)
   "Increment the component at point by N."
   (interactive "p")
-  (cl-destructuring-bind (type bounds) (k/wip-read-timestamp--thing-at-point)
-    (let* ((current-timestamp (buffer-substring (line-beginning-position)
-                                                (line-end-position)))
-           (current-decoded (iso8601-parse current-timestamp))
-           (current-zone (decoded-time-zone current-decoded))
-           new-decoded)
-      (setq new-decoded (cl-case type
-                          (:zone (decoded-time-add
-                                  current-decoded
-                                  (make-decoded-time :zone (* n 60 60))))
-                          (t (decoded-time-add
+  (cl-block nil
+    (cl-destructuring-bind (type bounds) (k/wip-read-timestamp--thing-at-point)
+      (let* ((current-timestamp (buffer-substring (line-beginning-position)
+                                                  (line-end-position)))
+             (current-decoded (iso8601-parse current-timestamp))
+             (current-zone (decoded-time-zone current-decoded))
+             (new-decoded current-decoded))
+        (cl-case type
+          (:zone
+           ;; Do nothing if we're at -24:00 or +24:00 and still trying to get to
+           ;; more extreme values
+           (when (or (and (not (< -86400 current-zone))
+                          (< n 0))
+                     (and (not (< current-zone 86400))
+                          (> n 0)))
+             (cl-return nil))
+           (cl-incf current-zone (* n 60 60))
+           (setq new-decoded (decoded-time-add
+                              current-decoded
+                              (make-decoded-time
+                               :zone
+                               ;; this cancels out the zone adjustment
+                               ;; the result is a timestamp where the only
+                               ;; difference is the offset (which also means it
+                               ;; describes a different moment in time)
+                               (* -1 n 60 60)))))
+          (t
+           (setq new-decoded (decoded-time-add
                               current-decoded
                               (make-decoded-time type n)))))
-      (delete-region (line-beginning-position) (line-end-position))
-      (insert (format-time-string "%FT%T%z" (encode-time new-decoded) current-zone))
-      (goto-char (car bounds)))))
+        ;; when decrementing days, hours, minutes, and seconds, they all decrement
+        ;; the larger unit after the lowest value (eg. 11:00 - 00:01 = 10:59)
+        ;; ...except months which doesn't do that to years, and only when decrementing.
+        ;; This implements it back in.
+        (when (and (= 1 (decoded-time-month current-decoded))
+                   (= 12 (decoded-time-month new-decoded)))
+          (cl-decf (decoded-time-year new-decoded)))
+        (delete-region (line-beginning-position) (line-end-position))
+        (insert (format-time-string "%FT%T%z" (encode-time new-decoded) current-zone))
+        (goto-char (car bounds))))))
 
 (defun k/wip-read-timestamp-decrement (&optional n)
   "Decrement the component at point by N."
