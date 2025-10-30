@@ -5,17 +5,35 @@
     (k/wip-read-timestamp-left))
   (cond
    ((looking-at "[0-9][0-9][0-9][0-9]")
-    (cons 'year (buffer-substring (match-beginning 0) (match-end 0))))
+    (list 'year
+          (cons (match-beginning 0) (match-end 0))
+          (string-to-number
+           (buffer-substring (match-beginning 0) (match-end 0)))))
    ((looking-at "\\([0-9][0-9]\\)-")
-    (cons 'month (buffer-substring (match-beginning 1) (match-end 1))))
+    (list 'month
+          (cons (match-beginning 1) (match-end 1))
+          (string-to-number
+           (buffer-substring (match-beginning 1) (match-end 1)))))
    ((looking-at "\\([0-9][0-9]\\)T")
-    (cons 'day (buffer-substring (match-beginning 1) (match-end 1))))
+    (list 'day
+          (cons (match-beginning 1) (match-end 1))
+          (string-to-number
+           (buffer-substring (match-beginning 1) (match-end 1)))))
    ((looking-at "\\([0-9][0-9]\\):[0-9][0-9]:")
-    (cons 'hour (buffer-substring (match-beginning 1) (match-end 1))))
+    (list 'hour
+          (cons (match-beginning 1) (match-end 1))
+          (string-to-number
+           (buffer-substring (match-beginning 1) (match-end 1)))))
    ((looking-at "\\([0-9][0-9]\\):")
-    (cons 'minute (buffer-substring (match-beginning 1) (match-end 1))))
+    (list 'minute
+          (cons (match-beginning 1) (match-end 1))
+          (string-to-number
+           (buffer-substring (match-beginning 1) (match-end 1)))))
    ((looking-at "[0-9][0-9]")
-    (cons 'second (buffer-substring (match-beginning 0) (match-end 0))))
+    (list 'second
+          (cons (match-beginning 0) (match-end 0))
+          (string-to-number
+           (buffer-substring (match-beginning 0) (match-end 0)))))
    ((looking-at
      ;; iso8601--zone-match but with groups changed
      (rx (or (group "Z")
@@ -23,7 +41,12 @@
                   (group (any "0-9") (any "0-9"))
                   (opt ":")
                   (group (opt (any "0-9") (any "0-9")))))))
-    (cons 'zone (buffer-substring (match-beginning 0) (match-end 0))))))
+    (list 'zone
+          (cons (match-beginning 0) (match-end 0))
+          ;; minutes to seconds
+          (* 60 (iso8601-parse-zone
+                 (buffer-substring (match-beginning 0)
+                                   (match-end 0))))))))
 
 ;; 2025-10-31T07:22:54+09:00
 ;; 2025-10-31T07:22:54+0900
@@ -54,6 +77,25 @@
   (when (= (point) (+ 20 (line-beginning-position)))
     (goto-char (+ 19 (line-beginning-position)))))
 
+(defun k/wip-read-timestamp-increment (&optional n)
+  "Increment the component at point by N."
+  (interactive "p")
+  (cl-destructuring-bind (type bounds value) (k/wip-read-timestamp--thing-at-point)
+    (let* ((current-timestamp (buffer-substring (line-beginning-position)
+                                                (line-end-position)))
+           (current-decoded (iso8601-parse current-timestamp))
+           (current-zone (decoded-time-zone current-decoded)))
+      ;; TODO: special treatment if type is zone
+      (save-excursion
+        (delete-region (car bounds) (cdr bounds))
+        (goto-char (car bounds))
+        (insert (format "%02d" (+ value (or n 1))))))))
+
+(defun k/wip-read-timestamp-decrement (&optional n)
+  "Decrement the component at point by N."
+  (interactive "p")
+  (k/wip-read-timestamp-increment (- n)))
+
 (k/wip-read-timestamp "test: ")
 
 (defun k/wip-read-timestamp (prompt)
@@ -65,4 +107,6 @@ Work in progress. The goal is to be like JS\\='s inquirer-date-prompt."
                           (set-keymap-parent map minibuffer-local-map)
                           (define-key map (kbd "<left>") #'k/wip-read-timestamp-left)
                           (define-key map (kbd "<right>") #'k/wip-read-timestamp-right)
+                          (define-key map (kbd "<up>") #'k/wip-read-timestamp-increment)
+                          (define-key map (kbd "<down>") #'k/wip-read-timestamp-decrement)
                           map)))
