@@ -5,35 +5,23 @@
     (k/wip-read-timestamp-left))
   (cond
    ((looking-at "[0-9][0-9][0-9][0-9]")
-    (list 'year
-          (cons (match-beginning 0) (match-end 0))
-          (string-to-number
-           (buffer-substring (match-beginning 0) (match-end 0)))))
+    (list :year
+          (cons (match-beginning 0) (match-end 0))))
    ((looking-at "\\([0-9][0-9]\\)-")
-    (list 'month
-          (cons (match-beginning 1) (match-end 1))
-          (string-to-number
-           (buffer-substring (match-beginning 1) (match-end 1)))))
+    (list :month
+          (cons (match-beginning 1) (match-end 1))))
    ((looking-at "\\([0-9][0-9]\\)T")
-    (list 'day
-          (cons (match-beginning 1) (match-end 1))
-          (string-to-number
-           (buffer-substring (match-beginning 1) (match-end 1)))))
+    (list :day
+          (cons (match-beginning 1) (match-end 1))))
    ((looking-at "\\([0-9][0-9]\\):[0-9][0-9]:")
-    (list 'hour
-          (cons (match-beginning 1) (match-end 1))
-          (string-to-number
-           (buffer-substring (match-beginning 1) (match-end 1)))))
+    (list :hour
+          (cons (match-beginning 1) (match-end 1))))
    ((looking-at "\\([0-9][0-9]\\):")
-    (list 'minute
-          (cons (match-beginning 1) (match-end 1))
-          (string-to-number
-           (buffer-substring (match-beginning 1) (match-end 1)))))
+    (list :minute
+          (cons (match-beginning 1) (match-end 1))))
    ((looking-at "[0-9][0-9]")
-    (list 'second
-          (cons (match-beginning 0) (match-end 0))
-          (string-to-number
-           (buffer-substring (match-beginning 0) (match-end 0)))))
+    (list :second
+          (cons (match-beginning 0) (match-end 0))))
    ((looking-at
      ;; iso8601--zone-match but with groups changed
      (rx (or (group "Z")
@@ -41,12 +29,8 @@
                   (group (any "0-9") (any "0-9"))
                   (opt ":")
                   (group (opt (any "0-9") (any "0-9")))))))
-    (list 'zone
-          (cons (match-beginning 0) (match-end 0))
-          ;; minutes to seconds
-          (* 60 (iso8601-parse-zone
-                 (buffer-substring (match-beginning 0)
-                                   (match-end 0))))))))
+    (list :zone
+          (cons (match-beginning 0) (match-end 0))))))
 
 ;; 2025-10-31T07:22:54+09:00
 ;; 2025-10-31T07:22:54+0900
@@ -80,23 +64,21 @@
 (defun k/wip-read-timestamp-increment (&optional n)
   "Increment the component at point by N."
   (interactive "p")
-  (cl-destructuring-bind (type bounds value) (k/wip-read-timestamp--thing-at-point)
+  (cl-destructuring-bind (type bounds) (k/wip-read-timestamp--thing-at-point)
     (let* ((current-timestamp (buffer-substring (line-beginning-position)
                                                 (line-end-position)))
            (current-decoded (iso8601-parse current-timestamp))
-           (current-zone (decoded-time-zone current-decoded)))
-      ;; TODO: special treatment if type is zone
-      (delete-region (car bounds) (cdr bounds))
-      (goto-char (car bounds))
-      (insert (format "%02d" (+ value (or n 1))))
-      ;; "normalize" back into reasonable ranges.
-      ;; the simple addition above would produce eg. 08-32
-      ;; FIXME: what about going down
-      (let ((before-normalize (delete-and-extract-region (line-beginning-position)
-                                                         (line-end-position))))
-        (insert
-         (format-time-string "%FT%T%z" (encode-time (iso8601-parse before-normalize))
-                             current-zone)))
+           (current-zone (decoded-time-zone current-decoded))
+           new-decoded)
+      (setq new-decoded (cl-case type
+                          (:zone (decoded-time-add
+                                  current-decoded
+                                  (make-decoded-time :zone (* n 60 60))))
+                          (t (decoded-time-add
+                              current-decoded
+                              (make-decoded-time type n)))))
+      (delete-region (line-beginning-position) (line-end-position))
+      (insert (format-time-string "%FT%T%z" (encode-time new-decoded) current-zone))
       (goto-char (car bounds)))))
 
 (defun k/wip-read-timestamp-decrement (&optional n)
