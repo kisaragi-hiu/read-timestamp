@@ -1,0 +1,3 @@
+* read-timestamp
+
+Like [[https://github.com/haversnail/inquirer-date-prompt][inquirer-date-prompt]] but in Emacs and for ISO 8601 timestamps.
