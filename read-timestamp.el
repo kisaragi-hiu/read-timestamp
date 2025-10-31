@@ -30,6 +30,9 @@
 
 ;;; Code:
 
+(require 'cl-lib)
+(require 'iso8601)
+
 ;; TODO: this needs to be unit tested
 (defun k/wip-read-timestamp--thing-at-point ()
   "."
@@ -63,11 +66,6 @@
                   (group (opt (any "0-9") (any "0-9")))))))
     (list :zone
           (cons (match-beginning 0) (match-end 0))))))
-
-;; 2025-10-31T07:22:54+09:00
-;; 2025-10-31T07:22:54+0900
-;; 2025-10-31T07:22:54-0900
-;; 2025-10-31T07:22:54Z
 
 (defun k/wip-read-timestamp-right ()
   "Move to the next component on the right."
