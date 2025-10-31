@@ -42,8 +42,6 @@ TYPE is a keyword for year, month, day, etc. They are keywords so that
 they can be passed directly to `make-decoded-time'.
 BOUNDS is a cons cell (START . END) of the component\\='s location in
 the minibuffer."
-  (when (eolp)
-    (read-timestamp--left))
   (cond
    ((looking-at "[0-9][0-9][0-9][0-9]")
     (list :year
