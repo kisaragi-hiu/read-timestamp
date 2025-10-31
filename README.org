@@ -1,3 +1,11 @@
 * read-timestamp
 
 Like [[https://github.com/haversnail/inquirer-date-prompt][inquirer-date-prompt]] but in Emacs and for ISO 8601 timestamps.
+
+** Usage
+
+- read-timestamp (prompt &optional time zone) ::
+
+  Read a timestamp from the user with PROMPT.
+
+  TIME and ZONE specify the initial timestamp. Blank means the current time or zone. They are passed directly to =format-time-string=.

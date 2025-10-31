@@ -173,8 +173,9 @@ If N is given, do this N times."
 
 (defun read-timestamp (prompt &optional time zone)
   "Read a timestamp from the user with PROMPT.
-TIME and ZONE allow specifying what moment the initial timestamp should
-describe. They are passed directly to `format-time-string'."
+
+TIME and ZONE specify the initial timestamp. Blank means the current
+time or zone. They are passed directly to `format-time-string'."
   (read-from-minibuffer
    prompt
    (propertize
