@@ -158,8 +158,12 @@ If N is given, do this N times."
         (when (and (= 1 (decoded-time-month current-decoded))
                    (= 12 (decoded-time-month new-decoded)))
           (cl-decf (decoded-time-year new-decoded)))
-        (delete-region (line-beginning-position) (line-end-position))
-        (insert (format-time-string "%FT%T%z" (encode-time new-decoded) current-zone))
+        (let ((inhibit-read-only t))
+          (delete-region (line-beginning-position) (line-end-position))
+          (insert
+           (propertize
+            (format-time-string "%FT%T%z" (encode-time new-decoded) current-zone)
+            'read-only t)))
         (goto-char (car bounds))))))
 
 (defun read-timestamp--decrement (&optional n)
@@ -173,7 +177,9 @@ TIME and ZONE allow specifying what moment the initial timestamp should
 describe. They are passed directly to `format-time-string'."
   (read-from-minibuffer
    prompt
-   (format-time-string "%FT%T%z" time zone)
+   (propertize
+    (format-time-string "%FT%T%z" time zone)
+    'read-only t)
    (let ((map (make-sparse-keymap)))
      (set-keymap-parent map minibuffer-local-map)
      (define-key map (kbd "<left>") #'read-timestamp--left)
