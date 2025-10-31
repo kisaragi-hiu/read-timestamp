@@ -167,12 +167,13 @@ If N is given, do this N times."
   (interactive "p")
   (read-timestamp--increment (- n)))
 
-(defun read-timestamp (prompt)
+(defun read-timestamp (prompt &optional time zone)
   "Read a timestamp from the user with PROMPT.
-Work in progress. The goal is to be like JS\\='s inquirer-date-prompt."
+TIME and ZONE allow specifying what moment the initial timestamp should
+describe. They are passed directly to `format-time-string'."
   (read-from-minibuffer
    prompt
-   (format-time-string "%FT%T%z")
+   (format-time-string "%FT%T%z" time zone)
    (let ((map (make-sparse-keymap)))
      (set-keymap-parent map minibuffer-local-map)
      (define-key map (kbd "<left>") #'read-timestamp--left)
