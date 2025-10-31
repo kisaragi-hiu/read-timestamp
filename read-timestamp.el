@@ -101,10 +101,23 @@ If N is given, do this N times."
     (dotimes (_i (max (or n 1) 1))
       (funcall do-it))))
 
+(defun read-timestamp--back-to-correct-pos ()
+  "Ensure point is on the correct position for the current component."
+  (let ((start (point)))
+    (read-timestamp--left)
+    ;; Sometimes we can exceed the prompt end for some reason. Cap the location
+    ;; in that case.
+    (when (<= (point) (minibuffer-prompt-end))
+      (goto-char (minibuffer-prompt-end)))
+    ;; Then iff we have moved left, move back to the right.
+    (when (< (point) start)
+      (read-timestamp--right))))
+
 (defun read-timestamp--increment (&optional n)
   "Increment the component at point by N."
   (interactive "p")
   (cl-block nil
+    (read-timestamp--back-to-correct-pos)
     (cl-destructuring-bind (type bounds) (read-timestamp--component-at-point)
       (let* ((current-timestamp (buffer-substring (line-beginning-position)
                                                   (line-end-position)))
@@ -168,8 +181,6 @@ Work in progress. The goal is to be like JS\\='s inquirer-date-prompt."
        (evil-define-key* 'normal map (kbd "j") #'read-timestamp--decrement)
        (evil-define-key* 'normal map (kbd "k") #'read-timestamp--increment))
      map)))
-
-(read-timestamp "hello: ")
 
 (provide 'read-timestamp)
 
