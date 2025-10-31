@@ -37,7 +37,11 @@
 
 ;; TODO: this needs to be unit tested
 (defun read-timestamp--component-at-point ()
-  "."
+  "Return the current component at point as (TYPE BOUNDS).
+TYPE is a keyword for year, month, day, etc. They are keywords so that
+they can be passed directly to `make-decoded-time'.
+BOUNDS is a cons cell (START . END) of the component\\='s location in
+the minibuffer."
   (when (eolp)
     (read-timestamp--left))
   (cond
