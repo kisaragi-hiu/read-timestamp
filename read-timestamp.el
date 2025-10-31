@@ -2,7 +2,7 @@
 
 ;; Author: Kisaragi Hiu
 ;; Maintainer: Kisaragi Hiu
-;; Version: 0.0.1
+;; Version: 0.1.0
 ;; Package-Requires: ((emacs "27.1"))
 ;; Homepage: https://github.com/kisaragi-hiu/read-timestamp
 ;; Keywords: extensions
