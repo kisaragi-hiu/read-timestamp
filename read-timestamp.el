@@ -33,6 +33,8 @@
 (require 'cl-lib)
 (require 'iso8601)
 
+(declare-function evil-define-key* "evil")
+
 ;; TODO: this needs to be unit tested
 (defun read-timestamp--component-at-point ()
   "."
@@ -67,29 +69,37 @@
     (list :zone
           (cons (match-beginning 0) (match-end 0))))))
 
-(defun read-timestamp--right ()
-  "Move to the next component on the right."
-  (interactive)
-  (cond
-   ;; allow end of line as a legal position
-   ((>= (point) (+ 19 (line-beginning-position)))
-    (goto-char (line-end-position)))
-   ;; go to the correct position for timezone offset
-   ((>= (point) (+ 17 (line-beginning-position)))
-    (goto-char (+ 19 (line-beginning-position))))
-   (t
-    (re-search-forward "$\\|\\([:T+-]\\)" nil t))))
+(defun read-timestamp--right (&optional n)
+  "Move to the next component on the right.
+If N is given, do this N times."
+  (interactive "p")
+  (let ((do-it (lambda ()
+                 (cond
+                  ;; allow end of line as a legal position
+                  ((>= (point) (+ 19 (line-beginning-position)))
+                   (goto-char (line-end-position)))
+                  ;; go to the correct position for timezone offset
+                  ((>= (point) (+ 17 (line-beginning-position)))
+                   (goto-char (+ 19 (line-beginning-position))))
+                  (t
+                   (re-search-forward "$\\|\\([:T+-]\\)" nil t))))))
+    (dotimes (_i (max (or n 1) 1))
+      (funcall do-it))))
 
-(defun read-timestamp--left ()
-  "Move to the next component on the left."
-  (interactive)
-  (forward-char -1)
-  (re-search-backward "^\\|\\([:T+-]\\)" nil t)
-  (when (match-string 1)
-    (forward-char 1))
-  ;; go to the correct position for timezone offset
-  (when (= (point) (+ 20 (line-beginning-position)))
-    (goto-char (+ 19 (line-beginning-position)))))
+(defun read-timestamp--left (&optional n)
+  "Move to the next component on the left.
+If N is given, do this N times."
+  (interactive "p")
+  (let ((do-it (lambda ()
+                 (forward-char -1)
+                 (re-search-backward "^\\|\\([:T+-]\\)" nil t)
+                 (when (match-string 1)
+                   (forward-char 1))
+                 ;; go to the correct position for timezone offset
+                 (when (= (point) (+ 20 (line-beginning-position)))
+                   (goto-char (+ 19 (line-beginning-position)))))))
+    (dotimes (_i (max (or n 1) 1))
+      (funcall do-it))))
 
 (defun read-timestamp--increment (&optional n)
   "Increment the component at point by N."
@@ -143,15 +153,23 @@
 (defun read-timestamp (prompt)
   "Read a timestamp from the user with PROMPT.
 Work in progress. The goal is to be like JS\\='s inquirer-date-prompt."
-  (read-from-minibuffer prompt
-                        (format-time-string "%FT%T%z")
-                        (let ((map (make-sparse-keymap)))
-                          (set-keymap-parent map minibuffer-local-map)
-                          (define-key map (kbd "<left>") #'read-timestamp--left)
-                          (define-key map (kbd "<right>") #'read-timestamp--right)
-                          (define-key map (kbd "<up>") #'read-timestamp--increment)
-                          (define-key map (kbd "<down>") #'read-timestamp--decrement)
-                          map)))
+  (read-from-minibuffer
+   prompt
+   (format-time-string "%FT%T%z")
+   (let ((map (make-sparse-keymap)))
+     (set-keymap-parent map minibuffer-local-map)
+     (define-key map (kbd "<left>") #'read-timestamp--left)
+     (define-key map (kbd "<right>") #'read-timestamp--right)
+     (define-key map (kbd "<up>") #'read-timestamp--increment)
+     (define-key map (kbd "<down>") #'read-timestamp--decrement)
+     (when (featurep 'evil)
+       (evil-define-key* 'normal map (kbd "h") #'read-timestamp--left)
+       (evil-define-key* 'normal map (kbd "l") #'read-timestamp--right)
+       (evil-define-key* 'normal map (kbd "j") #'read-timestamp--decrement)
+       (evil-define-key* 'normal map (kbd "k") #'read-timestamp--increment))
+     map)))
+
+(read-timestamp "hello: ")
 
 (provide 'read-timestamp)
 
