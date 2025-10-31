@@ -34,10 +34,10 @@
 (require 'iso8601)
 
 ;; TODO: this needs to be unit tested
-(defun k/wip-read-timestamp--thing-at-point ()
+(defun read-timestamp--component-at-point ()
   "."
   (when (eolp)
-    (k/wip-read-timestamp-left))
+    (read-timestamp--left))
   (cond
    ((looking-at "[0-9][0-9][0-9][0-9]")
     (list :year
@@ -67,7 +67,7 @@
     (list :zone
           (cons (match-beginning 0) (match-end 0))))))
 
-(defun k/wip-read-timestamp-right ()
+(defun read-timestamp--right ()
   "Move to the next component on the right."
   (interactive)
   (cond
@@ -80,7 +80,7 @@
    (t
     (re-search-forward "$\\|\\([:T+-]\\)" nil t))))
 
-(defun k/wip-read-timestamp-left ()
+(defun read-timestamp--left ()
   "Move to the next component on the left."
   (interactive)
   (forward-char -1)
@@ -91,11 +91,11 @@
   (when (= (point) (+ 20 (line-beginning-position)))
     (goto-char (+ 19 (line-beginning-position)))))
 
-(defun k/wip-read-timestamp-increment (&optional n)
+(defun read-timestamp--increment (&optional n)
   "Increment the component at point by N."
   (interactive "p")
   (cl-block nil
-    (cl-destructuring-bind (type bounds) (k/wip-read-timestamp--thing-at-point)
+    (cl-destructuring-bind (type bounds) (read-timestamp--component-at-point)
       (let* ((current-timestamp (buffer-substring (line-beginning-position)
                                                   (line-end-position)))
              (current-decoded (iso8601-parse current-timestamp))
@@ -135,24 +135,22 @@
         (insert (format-time-string "%FT%T%z" (encode-time new-decoded) current-zone))
         (goto-char (car bounds))))))
 
-(defun k/wip-read-timestamp-decrement (&optional n)
+(defun read-timestamp--decrement (&optional n)
   "Decrement the component at point by N."
   (interactive "p")
-  (k/wip-read-timestamp-increment (- n)))
+  (read-timestamp--increment (- n)))
 
-(k/wip-read-timestamp "test: ")
-
-(defun k/wip-read-timestamp (prompt)
+(defun read-timestamp (prompt)
   "Read a timestamp from the user with PROMPT.
 Work in progress. The goal is to be like JS\\='s inquirer-date-prompt."
   (read-from-minibuffer prompt
                         (format-time-string "%FT%T%z")
                         (let ((map (make-sparse-keymap)))
                           (set-keymap-parent map minibuffer-local-map)
-                          (define-key map (kbd "<left>") #'k/wip-read-timestamp-left)
-                          (define-key map (kbd "<right>") #'k/wip-read-timestamp-right)
-                          (define-key map (kbd "<up>") #'k/wip-read-timestamp-increment)
-                          (define-key map (kbd "<down>") #'k/wip-read-timestamp-decrement)
+                          (define-key map (kbd "<left>") #'read-timestamp--left)
+                          (define-key map (kbd "<right>") #'read-timestamp--right)
+                          (define-key map (kbd "<up>") #'read-timestamp--increment)
+                          (define-key map (kbd "<down>") #'read-timestamp--decrement)
                           map)))
 
 (provide 'read-timestamp)
